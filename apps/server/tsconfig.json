@@ -3,6 +3,7 @@
   "display": "Server",
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "paths": {
       "@colanode/server/*": ["./src/*"],
       "@colanode/core/*": ["../../packages/core/src/*"],
