@@ -74,6 +74,8 @@ Environment variables no longer override regular config fields—only values exp
 
 ### Deploying to Railway
 
+For a step-by-step setup with Railway dashboard shortcuts and copy-ready service variables, see the [Railway deployment guide](hosting/railway/README.md).
+
 Railway does not run this Docker Compose file directly. Create the Compose services as separate Railway services/resources:
 
 | Compose service | Railway setup | Public |
