@@ -30,13 +30,16 @@ export const initApp = () => {
   server.register(clientDecorator);
   server.register(apiRoutes);
 
-  server.listen({ port: 3000, host: '0.0.0.0' }, (err, address) => {
-    if (err) {
-      logger.error(err, 'Failed to start server');
-      process.exit(1);
-    }
+  server.listen(
+    { port: Number(process.env.PORT ?? 3000), host: '0.0.0.0' },
+    (err, address) => {
+      if (err) {
+        logger.error(err, 'Failed to start server');
+        process.exit(1);
+      }
 
-    const path = config.pathPrefix ? `/${config.pathPrefix}` : '';
-    logger.info(`Server is running at ${address}${path}`);
-  });
+      const path = config.pathPrefix ? `/${config.pathPrefix}` : '';
+      logger.info(`Server is running at ${address}${path}`);
+    }
+  );
 };

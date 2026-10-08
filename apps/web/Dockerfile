@@ -41,19 +41,9 @@ RUN npm run build -w @colanode/core && \
 FROM nginx:1.27-alpine
 
 COPY --from=build /app/apps/web/dist /usr/share/nginx/html
+COPY apps/web/nginx.conf.template /etc/nginx/templates/default.conf.template
 
-RUN cat <<'EOF' > /etc/nginx/conf.d/default.conf
-server {
-    listen 80;
-    server_name _;
-    root /usr/share/nginx/html;
-    index index.html;
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-}
-EOF
+ENV PORT=80
 
 EXPOSE 80
 

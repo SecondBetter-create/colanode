@@ -1,0 +1,21 @@
+{
+  "name": "Colanode Railway",
+  "web": {
+    "domain": "env://WEB_DOMAIN"
+  },
+  "cors": {
+    "origin": "env://WEB_ORIGIN"
+  },
+  "postgres": {
+    "url": "env://POSTGRES_URL"
+  },
+  "redis": {
+    "url": "env://REDIS_URL"
+  },
+  "storage": {
+    "provider": {
+      "type": "file",
+      "directory": "/data"
+    }
+  }
+}

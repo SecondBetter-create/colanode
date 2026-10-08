@@ -72,6 +72,29 @@ If you prefer to host your own Colanode server, check out the [`hosting/`](hosti
 
 Environment variables no longer override regular config fields—only values explicitly tagged with `env://` are read from the environment. Refer to [`hosting/docker/docker-compose.yaml`](hosting/docker/docker-compose.yaml) and [`hosting/kubernetes/README.md`](hosting/kubernetes/README.md) for mounting instructions and the handful of required secrets.
 
+### Deploying to Railway
+
+Railway runs the web app and API as separate services from this shared npm-workspace repository. Create a Railway project from the repository, then add these services from the same repository:
+
+| Service | Root directory | Dockerfile path | Public |
+| --- | --- | --- | --- |
+| `colanode-web` | `/` | `apps/web/Dockerfile` | Yes |
+| `colanode-server` | `/` | `apps/server/Dockerfile` | Yes |
+
+Keep each service's root directory at `/` so its Docker build can access the shared packages and root lockfile. The web service serves the Vite app. The server's public domain serves `/config`, `/client/v1/*`, and the WebSocket endpoints under `/client/v1/sockets/*`; clients should connect to `https://<server-domain>/config`. The web app and API need separate public domains because browsers connect directly to the API and its WebSocket endpoint.
+
+Add PostgreSQL with the `vector` extension enabled and Redis/Valkey to the Railway project. On `colanode-server`, set:
+
+- `CONFIG=/app/apps/server/config.railway.json`
+- `POSTGRES_URL` to the PostgreSQL connection URL (Railway variable reference: `${{Postgres.DATABASE_URL}}` when the database service is named `Postgres`)
+- `REDIS_URL` to the Redis connection URL (for example, `${{Redis.REDIS_URL}}` when the cache service is named `Redis`)
+- `WEB_DOMAIN` to the web service's public domain, without a scheme
+- `WEB_ORIGIN` to the web service's origin, including `https://`
+
+Attach a Railway volume to `colanode-server` at `/data`; the Railway config stores uploaded files there. Ensure the PostgreSQL service supports the `vector` extension required by the server migrations. Railway supplies `PORT` at runtime; both app containers listen on it.
+
+Desktop (Electron) and mobile (Expo/native) are client apps, not Railway web services.
+
 ### Running locally
 
 To run Colanode locally in development mode:
