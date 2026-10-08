@@ -1,3 +1,10 @@
+declare module "railway" {
+  export class Sandbox {
+    static create(): Promise<Sandbox>;
+    exec(command: string): Promise<{ stdout: string }>;
+  }
+}
+
 import { Sandbox } from "railway";
 
 // Load credentials from .env if present (Node 22+, no extra dependency).

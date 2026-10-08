@@ -11,14 +11,14 @@
     "src"
   ],
   "scripts": {
-    "compile": "tsc --noEmit",
-    "test": "vitest --passWithNoTests",
-    "lint": "eslint . --max-warnings 0",
-    "build": "tsc",
-    "coverage": "vitest run --coverage "
+    "dev": "next dev",
+    "build": "next build",
+    "start": "node .next/standalone/server.js",
+    "lint": "next lint"
   },
   "devDependencies": {
-    "@types/diff": "^7.0.2"
+    "@types/diff": "^7.0.2",
+    "@types/node": "^22.20.5"
   },
   "dependencies": {
     "@colanode/core": "^1.0.0",

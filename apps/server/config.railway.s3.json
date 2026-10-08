@@ -1,0 +1,26 @@
+{
+  "name": "Colanode Railway",
+  "web": {
+    "domain": "env://WEB_DOMAIN"
+  },
+  "cors": {
+    "origin": "env://WEB_ORIGIN"
+  },
+  "postgres": {
+    "url": "env://POSTGRES_URL"
+  },
+  "redis": {
+    "url": "env://REDIS_URL"
+  },
+  "storage": {
+    "provider": {
+      "type": "s3",
+      "endpoint": "env://S3_ENDPOINT",
+      "accessKey": "env://S3_ACCESS_KEY",
+      "secretKey": "env://S3_SECRET_KEY",
+      "bucket": "env://S3_BUCKET",
+      "region": "env://S3_REGION",
+      "forcePathStyle": true
+    }
+  }
+}

@@ -74,26 +74,48 @@ Environment variables no longer override regular config fields—only values exp
 
 ### Deploying to Railway
 
-Railway runs the web app and API as separate services from this shared npm-workspace repository. Create a Railway project from the repository, then add these services from the same repository:
+Railway does not run this Docker Compose file directly. Create the Compose services as separate Railway services/resources:
 
-| Service | Root directory | Dockerfile path | Public |
-| --- | --- | --- | --- |
-| `colanode-web` | `/` | `apps/web/Dockerfile` | Yes |
-| `colanode-server` | `/` | `apps/server/Dockerfile` | Yes |
+| Compose service | Railway setup | Public |
+| --- | --- | --- |
+| `postgres` | Use Railway's pgvector template (or deploy `pgvector/pgvector:pg17` with a volume mounted at `/var/lib/postgresql/data`). Configure the database credentials and database name as service variables. | No |
+| `valkey` | Deploy `valkey/valkey:8.1`, set a generated alphanumeric `REDIS_PASSWORD`, and use start command `valkey-server --requirepass "$REDIS_PASSWORD"`. | No |
+| `server` | Repository source, root directory `/`, Dockerfile path `apps/server/Dockerfile`. | Yes |
+| `web` | Repository source, root directory `/`, Dockerfile path `apps/web/Dockerfile`. | Yes |
+| `minio` (optional `s3` profile) | Deploy `minio/minio:RELEASE.2025-04-08T15-41-24Z`, attach a volume at `/data`, and use start command `minio server /data --address ":9000" --console-address ":9001"`. Set `MINIO_ROOT_USER` and a generated `MINIO_ROOT_PASSWORD`. | No |
 
-Keep each service's root directory at `/` so its Docker build can access the shared packages and root lockfile. The web service serves the Vite app. The server's public domain serves `/config`, `/client/v1/*`, and the WebSocket endpoints under `/client/v1/sockets/*`; clients should connect to `https://<server-domain>/config`. The web app and API need separate public domains because browsers connect directly to the API and its WebSocket endpoint.
+Keep the repository root as the root directory for both application services; their Dockerfiles build shared workspace packages from the repository root. Add persistent volumes for Postgres, MinIO when enabled, and `server` mounted at `/data`. Do not expose database, cache, or MinIO ports publicly.
 
-Add PostgreSQL with the `vector` extension enabled and Redis/Valkey to the Railway project. On `colanode-server`, set:
+Expose the `web` service and `server` service on separate Railway domains. Colanode clients connect directly to the API and its WebSocket endpoint, so the server's domain must be public; use `https://<server-domain>/config` as the server URL. Railway supplies `PORT` to the app services, and both containers listen on it.
 
-- `CONFIG=/app/apps/server/config.railway.json`
-- `POSTGRES_URL` to the PostgreSQL connection URL (Railway variable reference: `${{Postgres.DATABASE_URL}}` when the database service is named `Postgres`)
-- `REDIS_URL` to the Redis connection URL (for example, `${{Redis.REDIS_URL}}` when the cache service is named `Redis`)
-- `WEB_DOMAIN` to the web service's public domain, without a scheme
-- `WEB_ORIGIN` to the web service's origin, including `https://`
+On `server`, set `CONFIG=/app/apps/server/config.railway.json`, `POSTGRES_URL` to the pgvector service's internal database URL, `REDIS_URL` to `redis://:<password>@<valkey-private-domain>:6379/0`, `WEB_DOMAIN` to the web service's public domain without a scheme, and `WEB_ORIGIN` to its origin including `https://`. Keep the Valkey password alphanumeric so it can be used in the URL without escaping.
 
-Attach a Railway volume to `colanode-server` at `/data`; the Railway config stores uploaded files there. Ensure the PostgreSQL service supports the `vector` extension required by the server migrations. Railway supplies `PORT` at runtime; both app containers listen on it.
+The default Railway server config stores uploads on the `/data` volume. To use the optional MinIO service instead, set `CONFIG=/app/apps/server/config.railway.s3.json` on `server`, create a `colanode` bucket in MinIO, and set `S3_ENDPOINT` to `http://<minio-private-domain>:9000`, `S3_ACCESS_KEY` / `S3_SECRET_KEY` to the MinIO credentials, `S3_BUCKET=colanode`, and `S3_REGION=us-east-1`.
+
+The Compose file's Mailpit SMTP service is commented out and is for local email testing; it is not part of the default Railway setup.
 
 Desktop (Electron) and mobile (Expo/native) are client apps, not Railway web services.
+
+### Deploying to Vercel
+
+The root [`vercel.json`](vercel.json) deploys the Vite web app at `/` and the Fastify server at `/api/*`. Desktop and mobile are native clients, so they are not Vercel services. The server receives the original request path; [`apps/server/config.vercel.json`](apps/server/config.vercel.json) sets `pathPrefix` to `api`, including for `/api/config`.
+
+Configure these environment variables on the `server` service in Vercel. Set `CONFIG=./config.vercel.json`; the file is included with the server function.
+
+| Variable | Value |
+| --- | --- |
+| `POSTGRES_URL` | PostgreSQL connection URL for a database with the `vector` extension |
+| `REDIS_URL` | Redis/Valkey connection URL |
+| `WEB_DOMAIN` | Public web domain without a scheme, such as `colanode.example.com` |
+| `WEB_ORIGIN` | Public web origin including the scheme, such as `https://colanode.example.com` |
+| `S3_ENDPOINT` | S3-compatible storage endpoint |
+| `S3_ACCESS_KEY` / `S3_SECRET_KEY` | S3 credentials |
+| `S3_BUCKET` | Bucket for uploaded files |
+| `S3_REGION` | S3 region |
+
+Set the web domain and origin to match the Vercel domain for each deployment environment. The database, Redis, and object storage must be provisioned separately; Vercel service bindings are not needed because the browser connects directly to the configured server URL. Add a server in Colanode using `https://<deployment-domain>/api/config`.
+
+The server uses WebSockets and starts queue/event consumers from its entrypoint. Vercel's Fastify deployment runs as a Function, and WebSocket support is currently in public beta; verify those runtime constraints and function limits for your Vercel plan before using this as a production deployment.
 
 ### Running locally
 
